@@ -1,2 +1,5 @@
-bin/
-obj/
+completed
+bin
+obj
+.vs
+wip
