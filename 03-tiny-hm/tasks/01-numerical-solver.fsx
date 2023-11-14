@@ -14,23 +14,31 @@ type Number =
 
 
 let rec occursCheck (v:string) (n:Number) = 
-  // TODO: Check if variable 'v' appears anywhere inside 'n'
-  false
+  // Check if variable 'v' appears anywhere inside 'n'
+  match n with
+  | Zero -> false
+  | Variable(s) -> s = v
+  | Succ(n) -> occursCheck v n
 
 let rec substite (v:string) (subst:Number) (n:Number) =
-  // TODO: Replace all occurrences of variable 'v' in the
+  // Replace all occurrences of variable 'v' in the
   // number 'n' with the replacement number 'subst'
-  n
+  match n with
+  | Zero -> Zero
+  | Succ(x) -> Succ(substite v subst x)
+  | Variable(v2) when v2 = v -> subst
+  | Variable(_) -> n
+
 
 let substituteConstraints (v:string) (subst:Number) (constraints:list<Number * Number>) = 
-  // TODO: Substitute 'v' for 'subst' (use 'substitute') in 
+  // Substitute 'v' for 'subst' (use 'substitute') in 
   // all numbers in all the constraints in 'constraints'
-  constraints
+  List.map (fun (e1, e2) -> substite v subst e1, substite v subst e2) constraints
 
 let substituteAll (subst:list<string * Number>) (n:Number) =
-  // TODO: Perform all substitutions 
+  // Perform all substitutions 
   // specified  in 'subst' on the number 'n'
-  n
+  List.fold (fun n (subst) -> substite (fst subst) (snd subst) n) n subst
 
 let rec solve constraints = 
   match constraints with 
@@ -48,23 +56,30 @@ let rec solve constraints =
       (v, n)::subst
 
 // Should work: x = Zero
-solve 
-  [ Succ(Variable "x"), Succ(Zero) ]
-
+printfn "%A" (
+  solve [ Succ(Variable "x"), Succ(Zero) ]
+)
 // Should faild: S(Z) <> Z
-solve 
-  [ Succ(Succ(Zero)), Succ(Zero) ]
-
+// printfn "%A" (
+// solve 
+//   [ Succ(Succ(Zero)), Succ(Zero) ]
+// )
 // Not done: Need to substitute x/Z in S(x)
-solve 
-  [ Succ(Variable "x"), Succ(Zero)
-    Variable "y", Succ(Variable "x") ]
+// printfn "%A" (
+// solve 
+//   [ Succ(Variable "x"), Succ(Zero)
+//     Variable "y", Succ(Variable "x") ]
+// )
 
 // Not done: Need to substitute z/Z in S(S(z))
+printfn "%A" (
 solve 
   [ Variable "x", Succ(Succ(Variable "z"))
     Succ(Variable "z"), Succ(Zero) ]
+)
 
 // Not done: Need occurs check
+printfn "%A" (
 solve
   [ Variable "x", Succ(Variable "x") ]
+)
