@@ -136,7 +136,7 @@ let withFreshVariables (clause: Clause) : Clause =
 
 
 let query (program: list<Clause>) (query: Term) : list<Clause * list<string * Term>> =
-    // TODO: Return all clauses from 'program' whose 'Head' can be
+    // Return all clauses from 'program' whose 'Head' can be
     // unified with the specified 'query' and return the resulting
     // substitutions. Before unifying, rename variables in the program
     // rule using 'withFreshVariables'. You can do this using 'List.choose'
