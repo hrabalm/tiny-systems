@@ -39,6 +39,8 @@ let rec eval (sheet: LiveSheet) expr =
         | Some y -> y.Value
         | _ -> Error "Missing value"
     | Function(f, list) ->
+        printfn "llllist: %A %A" list sheet
+
         match (f, list) with
         | ("+", [ x; y ]) ->
             match ((eval sheet x), (eval sheet y)) with
@@ -61,33 +63,49 @@ let makeNode addr (sheet: LiveSheet) (expr: Expr) : CellNode =
 
 
 let makeSheet (list: (Address * Expr) list) : LiveSheet =
-    // TODO: Previously, we could turn a list of mappings into a sheet just
+    // Previously, we could turn a list of mappings into a sheet just
     // by using Map.ofList. This no longer works, because we need to add
     // cells one by one (we should make sure that all cells on which the new one
     // depends are already in the sheet, but we assume examples are given
     // in a correct order). To do this, use 'List.fold' and 'makeNode'.
-    let sheet = Map.empty
-    List.fold (fun sheet (addr, expr) -> makeNode sheet expr) sheet list
+    List.fold (fun sheet (addr, expr) -> Map.add addr (makeNode addr sheet expr) sheet) Map.empty list
 
 
 // ----------------------------------------------------------------------------
 // Drag down expansion
 // ----------------------------------------------------------------------------
 
-let rec relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) (srcExpr: Expr) = failwith "implemented in step 2"
+let rec relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) (srcExpr: Expr) =
+    let colDiff = tgtCol - srcCol
+    let rowDiff = tgtRow - srcRow
 
+    match srcExpr with
+    | Const _ -> srcExpr
+    | Reference(a, b) -> Reference(a + colDiff, b + rowDiff)
+    | Function(s, list) -> Function(s, List.map (fun e -> relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) e) list)
 
-let expand (r1, c1) (r2, c2) (sheet: LiveSheet) =
-    // TODO: This needs to call 'makeNode' and add the resulting node,
+let expand (srcCol, srcRow) (tgtCol, tgtRow) (sheet: LiveSheet) =
+    // This needs to call 'makeNode' and add the resulting node,
     // instead of just adding the expression to the map as is.
-    failwith "implemented in step 2"
+    let targets =
+        [ for col in srcCol..tgtCol do
+              for row in srcRow..tgtRow do
+                  if col <> srcCol || row <> srcRow then
+                      yield (col, row) ]
 
+    let cells =
+        List.map (fun addr -> addr, relocateReferences (srcCol, srcRow) addr sheet[srcCol, srcRow].Expr) targets
+
+    let sheet =
+        List.fold (fun sheet (addr, expr) -> Map.add addr (makeNode addr sheet expr) sheet) sheet cells
+
+    sheet
 
 // ----------------------------------------------------------------------------
 // Helpers and test cases
 // ----------------------------------------------------------------------------
 
-let addr (s: string) = failwith "implemented in step 1"
+let addr (s: string) = Address(int s[0], int s[1..])
 
 let fib =
     [ addr "A1", Const(Number 0)
