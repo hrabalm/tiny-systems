@@ -51,20 +51,45 @@ let rec evaluate (ctx:VariableContext) e =
       | Some res -> res
       | _ -> failwith ("unbound variable: " + v)
 
-  // NOTE: You have the following from before
-  | Unary(op, e) -> failwith "implemented in step 2"
-  | If(econd, etrue, efalse) -> failwith "implemented in step 2"
-  | Lambda(v, e) -> failwith "implemented in step 3"
-  | Application(e1, e2) -> failwith "implemented in step 3"
-  | Let(v, e1, e2) -> failwith "implemented in step 4"
+  | Unary(op, e) ->
+      let v = evaluate ctx e
+
+      match v with
+      | ValNum v ->
+          match op with
+          | "-" -> ValNum(-v)
+          | _ -> failwith "unsupported unary operator"
+      | _ -> failwith "unsupported unary operand"
+  | If(econd, etrue, efalse) ->
+      let condVal = evaluate ctx econd
+
+      match condVal with
+      | ValNum(1) -> evaluate ctx etrue
+      | _ -> evaluate ctx efalse
+
+  | Lambda(v, e) -> ValClosure((v, e, ctx))
+
+  | Application(e1, e2) ->
+      match evaluate ctx e1 with
+      | ValClosure(s, e, ctx) ->
+          let arg = evaluate ctx e2
+          let ctx = ctx.Add(s, arg)
+          evaluate ctx e
+      | _ -> failwith "first argument has to be a function"
+  | Let(v, e1, e2) ->
+      let desugared = Application(Lambda(v, e2), e1)
+      evaluate ctx desugared
 
   | Tuple(e1, e2) ->
-      // TODO: Construct a tuple value here!
-      failwith "not implemented"
+      ValTuple(evaluate ctx e1, evaluate ctx e2)
   | TupleGet(b, e) ->
-      // TODO: Access #1 or #2 element of a tuple value.
+      // Access #1 or #2 element of a tuple value.
       // (If the argument is not a tuple, this fails.)
-      failwith "not implemented"
+      let tval = evaluate ctx e
+      match b, tval with
+      | (true, ValTuple(fst, _)) -> fst
+      | (false, ValTuple(_, snd)) -> snd
+      | _ -> failwith "not a tuple"
 
 // ----------------------------------------------------------------------------
 // Test cases
