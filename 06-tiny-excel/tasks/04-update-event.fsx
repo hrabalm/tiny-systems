@@ -42,9 +42,17 @@ let rec eval (sheet: LiveSheet) expr =
             match ((eval sheet x), (eval sheet y)) with
             | (Number xn, Number xy) -> Number(xn + xy)
             | _ -> Error "Invalid arguments"
+        | ("-", [ x; y ]) ->
+            match ((eval sheet x), (eval sheet y)) with
+            | (Number xn, Number xy) -> Number(xn - xy)
+            | _ -> Error "Invalid arguments"
         | ("*", [ x; y ]) ->
             match ((eval sheet x), (eval sheet y)) with
             | (Number xn, Number xy) -> Number(xn * xy)
+            | _ -> Error "Invalid arguments"
+        | ("/", [ x; y ]) ->
+            match ((eval sheet x), (eval sheet y)) with
+            | (Number xn, Number xy) -> Number(xn / xy)
             | _ -> Error "Invalid arguments"
         | _ -> Error "Unknown"
 
@@ -60,7 +68,7 @@ let rec collectReferences (expr: Expr) : Address list =
 
 
 let makeNode addr (sheet: LiveSheet) expr =
-    // TODO: Add handling of 'Update' events!
+    // Add handling of 'Update' events!
     //
     // * When creating a node, we need to create a new event and
     //   set it as the 'Updated' event of the returned node.
@@ -72,33 +80,71 @@ let makeNode addr (sheet: LiveSheet) expr =
     //   this one depends and add 'update' as the handler of their
     //   'Updated' event
     //
-    failwith "partly implemented in step 3"
+    let updatedEvent = new Event<unit>()
 
+    let node =
+        { Expr = expr
+          Value = eval sheet expr
+          Updated = updatedEvent }
+
+    let update _ =
+        node.Value <- eval sheet expr
+        updatedEvent.Trigger()
+
+    for addr in collectReferences expr do
+        sheet[addr].Updated.Publish.Add(update)
+
+    node
 
 let updateNode addr (sheet: LiveSheet) expr =
-    // TODO: For now, we ignore the fact that the new expression may have
+    // For now, we ignore the fact that the new expression may have
     // different set of references than the one we are replacing.
     // So, we can just get the node, set the new expression and value
     // and trigger the Updated event!
-    failwith "not implemented"
+    let node = sheet[addr]
+
+    node.Expr <- expr
+    node.Value <- eval sheet expr
+    node.Updated.Trigger()
 
 
-let makeSheet list = failwith "implemented in step 3"
-
+let makeSheet list =
+    List.fold (fun sheet (addr, expr) -> Map.add addr (makeNode addr sheet expr) sheet) Map.empty list
 // ----------------------------------------------------------------------------
 // Drag down expansion
 // ----------------------------------------------------------------------------
 
-let rec relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) (srcExpr: Expr) = failwith "implemented in step 2"
+let rec relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) (srcExpr: Expr) =
+    let colDiff = tgtCol - srcCol
+    let rowDiff = tgtRow - srcRow
 
-let expand (r1, c1) (r2, c2) (sheet: LiveSheet) = failwith "implemented in step 2 and 3"
+    match srcExpr with
+    | Const _ -> srcExpr
+    | Reference(a, b) -> Reference(a + colDiff, b + rowDiff)
+    | Function(s, list) -> Function(s, List.map (fun e -> relocateReferences (srcCol, srcRow) (tgtCol, tgtRow) e) list)
 
+let expand (srcCol, srcRow) (tgtCol, tgtRow) (sheet: LiveSheet) =
+    // This needs to call 'makeNode' and add the resulting node,
+    // instead of just adding the expression to the map as is.
+    let targets =
+        [ for col in srcCol..tgtCol do
+              for row in srcRow..tgtRow do
+                  if col <> srcCol || row <> srcRow then
+                      yield (col, row) ]
+
+    let cells =
+        List.map (fun addr -> addr, relocateReferences (srcCol, srcRow) addr sheet[srcCol, srcRow].Expr) targets
+
+    let sheet =
+        List.fold (fun sheet (addr, expr) -> Map.add addr (makeNode addr sheet expr) sheet) sheet cells
+
+    sheet
 
 // ----------------------------------------------------------------------------
 // Helpers and test cases
 // ----------------------------------------------------------------------------
 
-let addr (s: string) = failwith "implemented in step 1"
+let addr (s: string) = Address(int s[0], int s[1..])
 
 // Simple spreadsheet that performs conversion between Celsius and Fahrenheit
 // To convert F to C, we put value in F into B1 and read the result in C1
@@ -114,8 +160,12 @@ let tempConv =
       )
       addr "A2", Const(String "C to F")
       addr "B2", Const(Number 0)
-      // TODO: Add formula for Celsius to Fahrenheit conversion to 'C2'
-      addr "C2", Const(Error "not implemented") ]
+      addr "C2",
+      Function(
+          "+",
+          [ Function("/", [ Function("*", [ Reference(addr "B2"); Const(Number(9)) ]); Const(Number 5) ])
+            Const(Number 32) ]
+      ) ]
     |> makeSheet
 
 // Fahrenheit to Celsius conversions
