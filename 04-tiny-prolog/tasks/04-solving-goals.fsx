@@ -208,5 +208,5 @@ solve family [] [ Predicate("father", [ Variable("X"); Atom("William") ]) ]
 
 // Query: father(X, Y)
 // Result #1: [ X -> Charles, Y -> William, ... ]
-// Result #2: [ X -> George, Y -> William, ... ]
+// Result #2: [ X -> William, Y -> George, ... ]
 solve family [] [ Predicate("father", [ Variable("X"); Variable("Y") ]) ]
