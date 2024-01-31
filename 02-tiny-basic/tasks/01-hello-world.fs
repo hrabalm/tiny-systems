@@ -33,13 +33,13 @@ type State =
 // ----------------------------------------------------------------------------
 
 let printValue value = 
-  // TODO: Take 'value' of type 'Value', pattern match on it and print it nicely.
+  // Take 'value' of type 'Value', pattern match on it and print it nicely.
   match value with
   | StringValue(s) ->
     Console.Write(s)
 
 let getLine state line =
-  // TODO: Get a line with a given number from 'state.Program' (this can fail 
+  // Get a line with a given number from 'state.Program' (this can fail 
   // if the line is not there.) You need this in the 'Goto' command case below.
   match List.tryFind (fun (ln, _) -> ln = line) state.Program with
   | Some value -> value
@@ -71,7 +71,7 @@ let rec runCommand state (line, cmd) =
       runCommand state newLine
 
 and runNextLine state line = 
-  // TODO: Find a program line with the number greater than 'line' and evalaute
+  // Find a program line with the number greater than 'line' and evalaute
   // it using 'evalExpression' (if found) or just return 'state' (if not found).
   let newLine =  List.tryFind (fun (newLine, _) -> newLine > line) state.Program
   match newLine with

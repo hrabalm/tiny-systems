@@ -113,7 +113,7 @@ let rec runCommand state (line, cmd) =
         let newLine = getLine state line
         runCommand state newLine
 
-    // TODO: Implement assignment and conditional. Assignment should run the
+    // Implement assignment and conditional. Assignment should run the
     // next line after setting the variable value. 'If' is a bit trickier:
     // * 'l1: IF TRUE THEN GOTO <l1>' will continue evaluating on line 'l2'
     // * 'l1: IF FALSE THEN GOTO <l1>' will continue on line after 'l1'

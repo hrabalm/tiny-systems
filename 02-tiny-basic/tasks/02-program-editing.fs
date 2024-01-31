@@ -83,7 +83,7 @@ and runNextLine state line =
 // ----------------------------------------------------------------------------
 
 let runInput state (line, cmd) =
-  // TODO: Simulate what happens when the user enters a line of code in the 
+  // Simulate what happens when the user enters a line of code in the 
   // interactive terminal. If the 'line' number is 'Some ln', we want to 
   // insert the line into the right location of the program (addLine); if it
   // is 'None', then we want to run it immediately. To make sure that 
